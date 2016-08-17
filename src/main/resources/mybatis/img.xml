@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="img">
+<insert id="create" parameterType="ImgDTO">
+insert into img(imgno,wname,title,content,passwd,filename,grpno)
+values((SELECT NVL(MAX(imgno), 0) + 1 as imgno FROM img),
+#{wname},#{title},#{content},#{passwd},#{filename},(SELECT NVL(MAX(grpno), 0) + 1 as grpno FROM img))
+</insert>
+
+<update id="update" parameterType="ImgDTO">
+update img
+set wname=#{wname},title=#{title},content=#{content},filename=#{filename}
+where imgno=#{imgno}
+</update>
+
+
+<select id="passwdCheck" parameterType="map" resultType="int">
+SELECT COUNT(imgno) as cnt
+FROM img
+WHERE imgno=#{imgno} AND passwd=#{passwd}
+</select>
+
+<select id="list" parameterType="map" resultType="ImgDTO">
+SELECT wname, title, content, filename, grpno, indent, ansnum, imgno, r       
+FROM(                                                                          
+	SELECT wname, title, content, filename, grpno, indent, ansnum, imgno , rownum r
+	FROM(	                                                                 
+		SELECT wname, title, content, filename, grpno, indent,ansnum , imgno    
+		FROM img
+		<where>
+		<if test="col=='wname'">
+		wname like '%'||#{word}||'%'
+		</if>
+		<if test="col=='title'">
+		title like '%'||#{word}||'%'
+		</if>
+		<if test="col=='content'">
+		content like '%'||#{word}||'%'
+		</if>
+		</where>		
+		 		ORDER BY grpno DESC, ansnum
+ 	)                          
+ )
+ <![CDATA[                            
+ where r>=#{sno} and r<=#{eno}
+ ]]>                                                                      
+</select>
+
+<select id="read" parameterType="int" resultType="ImgDTO">
+select * from img
+where imgno = #{imgno}
+</select>
+
+<update id="addAnsnum" parameterType="map">
+UPDATE img
+SET ansnum = ansnum + 1
+WHERE grpno=#{grpno} AND ansnum > #{ansnum}
+</update>
+
+<select id="total" parameterType="map" resultType="int">
+select count(*) from img
+<where>
+		<if test="col=='wname'">
+		wname like '%'||#{word}||'%'
+		</if>
+		<if test="col=='title'">
+		title like '%'||#{word}||'%'
+		</if>
+		<if test="col=='content'">
+		content like '%'||#{word}||'%'
+		</if>
+		</where>
+</select>
+
+<select id="imgRead" parameterType="int" resultType="ImgDTO">
+SELECT * FROM                                          
+  (                                                      
+     select imgno, filename,                         
+         lag(imgno,2)     over (order by grpno DESC,ansnum ) pre_imgno2, 
+         lag(filename,2)  over (order by grpno DESC,ansnum ) pre_file2,  
+         lag(imgno,1)     over (order by grpno DESC,ansnum  ) pre_imgno1,
+         lag(filename,1)  over (order by grpno DESC,ansnum  ) pre_file1, 
+         lead(imgno,1)    over (order by grpno DESC,ansnum ) nex_imgno1, 
+         lead(filename,1) over (order by grpno DESC,ansnum ) nex_file1,  
+         lead(imgno,2)    over (order by grpno DESC,ansnum ) nex_imgno2, 
+         lead(filename,2) over (order by grpno DESC,ansnum ) nex_file2   
+         from (                                         
+              SELECT imgno, filename,grpno,ansnum                    
+              FROM img                                 
+              ORDER BY grpno DESC,ansnum    	              
+         )                                              
+  )                                                     
+  WHERE imgno = #{imgno}                                      
+</select>
+
+<delete id="delete" parameterType="int">
+delete from img
+where imgno=#{imgno}
+</delete>
+
+<insert id="reply" parameterType="ImgDTO">
+insert into img(imgno, wname, title, content ,passwd, grpno, indent, ansnum, filename)
+values((select nvl(max(imgno),0)+1 as imgno from img),
+#{wname}, #{title}, #{content} ,#{passwd}, #{grpno}, #{indent}+1, #{ansnum}+1, #{filename})
+</insert>
+
+<select id="readReply" parameterType="int" resultType="ImgDTO">
+select imgno,title,grpno,indent,ansnum
+from img
+where imgno = #{imgno}
+</select>
+</mapper>

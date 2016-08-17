@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="memo">
+
+<insert id="create" parameterType="memoVO">
+INSERT INTO memo(memono, title, content, wdate)
+values(memo_seq.nextval,#{title}, #{content}, sysdate)
+</insert>
+
+<select id="read" parameterType="int" resultType="memoVO">
+select * From memo Where memono = #{memono}
+</select>
+
+<update id="update" parameterType="memoVO">
+UPDATE memo
+SET title = #{title},
+content = #{content}
+WHERE memono = #{memono}
+</update>
+
+<delete id="delete" parameterType="int">
+delete from memo
+where memono=#{memono}
+</delete>
+
+<update id="upViewcnt" parameterType="int">
+update memo
+set viewcnt = viewcnt + 1
+where memono = #{memono}
+</update>
+
+<select id="total" parameterType="map" resultType="int">
+select count(*) from memo
+	<where>
+		<if test="col=='title'">
+		title like '%'||#{word}||'%'
+		</if>
+		<if test="col=='wdate'">
+		wdate like '%'||#{word}||'%'
+		</if>
+		<if test="col=='hit'">
+		hit like '%'||#{word}||'%'
+		</if>
+	</where>
+</select>
+
+<select id="list" parameterType="map" resultType="memoVO">
+select memono, title, viewcnt,to_char(wdate,'yyyy-mm-dd')wdate, r
+from(                                                         
+	select memono, title, viewcnt,wdate,rownum r             
+	from(                                                   
+		select memono, title, viewcnt,wdate               
+		from MEMO 
+		<where>
+		<if test="col=='title'">
+		title like '%'||#{word}||'%'
+		</if>
+		<if test="col=='wdate'">
+		wdate like '%'||#{word}||'%'
+		</if>
+		<if test="col=='hit'">
+		hit like '%'||#{word}||'%'
+		</if>
+		</where>
+				order by memono desc
+	 )                   
+ )
+ <![CDATA[                     
+	 where r>=#{sno} and r<=#{eno}
+	 ]]>                                           
+</select>
+
+</mapper>
